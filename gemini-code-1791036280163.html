@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Download MIDI Multi-User</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e1e2f, #2a2a40);
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 15px;
+            box-sizing: border-box;
+        }
+        .card {
+            background: #2d2d44;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            width: 100%;
+            max-width: 600px;
+            box-sizing: border-box;
+        }
+        h2, h3 {
+            margin-top: 0;
+            color: #4ecca3;
+            text-align: center;
+        }
+        p {
+            color: #b0b0c3;
+            font-size: 13px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #dcdcf0;
+        }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #44445c;
+            border-radius: 6px;
+            background: #1e1e2f;
+            color: #fff;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #4ecca3;
+        }
+        button.btn-main {
+            width: 100%;
+            padding: 12px;
+            background: #4ecca3;
+            border: none;
+            border-radius: 6px;
+            color: #1e1e2f;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 5px;
+        }
+        button.btn-main:hover {
+            background: #45b393;
+        }
+        
+        /* Dashboard & Search Styles */
+        .search-box {
+            margin-bottom: 15px;
+        }
+        .midi-table-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border-radius: 6px;
+            border: 1px solid #44445c;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 12px;
+            border-bottom: 1px solid #3b3b58;
+        }
+        th {
+            background: #1e1e2f;
+            color: #4ecca3;
+            position: sticky;
+            top: 0;
+        }
+        tr:hover {
+            background: rgba(78, 204, 163, 0.05);
+        }
+        .btn-dl {
+            background: #4ecca3;
+            color: #1e1e2f;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .btn-dl:hover {
+            background: #45b393;
+        }
+        #message {
+            margin-top: 15px;
+            font-size: 13px;
+            text-align: center;
+        }
+        .error { color: #ff6b6b; }
+        .success { color: #4ecca3; }
+        .hidden { display: none; }
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .btn-logout {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <!-- FORM LOGIN -->
+        <div id="login-section">
+            <h2>Login Member MIDI</h2>
+            <p>Masukkan akun Anda untuk melihat daftar lagu.</p>
+            
+            <div class="input-group">
+                <label for="username">Username:</label>
+                <input type="text" id="username" placeholder="Masukkan username...">
+            </div>
+            
+            <div class="input-group">
+                <label for="password">Password:</label>
+                <input type="password" id="password" placeholder="Masukkan password...">
+            </div>
+            
+            <button class="btn-main" onclick="handleLogin()">Masuk</button>
+        </div>
+
+        <!-- DASHBOARD & TABEL KATALOG (Setelah Login) -->
+        <div id="dashboard-section" class="hidden">
+            <div class="user-info">
+                <span id="welcome-msg" style="font-weight: bold; color: #4ecca3;"></span>
+                <button class="btn-logout" onclick="handleLogout()">Logout</button>
+            </div>
+            
+            <!-- Fitur Pencarian -->
+            <div class="search-box">
+                <input type="text" id="searchInput" onkeyup="filterMidiTable()" placeholder="🔍 Cari artis, lagu, atau genre...">
+            </div>
+
+            <!-- Tabel Data MIDI -->
+            <div class="midi-table-container">
+                <table id="midiTable">
+                    <thead>
+                        <tr>
+                            <th>Artis</th>
+                            <th>Lagu</th>
+                            <th>Genre</th>
+                            <th>Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="midi-table-body">
+                        <!-- Data dimasukkan via script -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // DATABASE INTERNAL (Multi-User & Data file MIDI langsung dalam format Base64)
+        // Anda bisa mengganti teks base64 di bawah dengan data file .mid Anda sendiri.
+        const database = {
+            users: [
+                {
+                    username: "member_pro",
+                    password: "password123",
+                    midiFiles: [
+                        {
+                            artist: "Peterpan",
+                            title: "Yang Terdalam",
+                            genre: "Pop Rock",
+                            // Contoh string base64 file MIDI ringkas
+                            base64Data: "data:audio/midi;base64,TVRoZAAAAAYAAQABAYTUHJhY3RpY2U="
+                        },
+                        {
+                            artist: "Dewa 19",
+                            title: "Kangen",
+                            genre: "Rock",
+                            base64Data: "data:audio/midi;base64,TVRoZAAAAAYAAQABAYTUHJhY3RpY2U="
+                        }
+                    ]
+                },
+                {
+                    username: "member_vip",
+                    password: "vipassword",
+                    midiFiles: [
+                        {
+                            artist: "Glenn Fredly",
+                            title: "Kasih Putih",
+                            genre: "R&B / Soul",
+                            base64Data: "data:audio/midi;base64,TVRoZAAAAAYAAQABAYTUHJhY3RpY2U="
+                        }
+                    ]
+                }
+            ]
+        };
+
+        let currentMidiFiles = [];
+
+        function handleLogin() {
+            const inputUser = document.getElementById('username').value.trim();
+            const inputPass = document.getElementById('password').value.trim();
+            const messageDiv = document.getElementById('message');
+
+            if (!inputUser || !inputPass) {
+                messageDiv.className = "error";
+                messageDiv.textContent = "Username dan password wajib diisi!";
+                return;
+            }
+
+            const foundUser = database.users.find(u => u.username === inputUser && u.password === inputPass);
+
+            if (foundUser) {
+                messageDiv.className = "success";
+                messageDiv.textContent = "Login berhasil!";
+                
+                document.getElementById('login-section').classList.add('hidden');
+                document.getElementById('dashboard-section').classList.remove('hidden');
+                document.getElementById('welcome-msg').textContent = `Halo, ${foundUser.username}`;
+
+                currentMidiFiles = foundUser.midiFiles || [];
+                renderTable(currentMidiFiles);
+                messageDiv.textContent = ""; // Bersihkan pesan sukses setelah masuk
+
+            } else {
+                messageDiv.className = "error";
+                messageDiv.textContent = "Username atau password salah!";
+            }
+        }
+
+        function handleLogout() {
+            document.getElementById('login-section').classList.remove('hidden');
+            document.getElementById('dashboard-section').classList.add('hidden');
+            document.getElementById('username').value = "";
+            document.getElementById('password').value = "";
+            document.getElementById('message').textContent = "";
+        }
+
+        function renderTable(files) {
+            const tbody = document.getElementById('midi-table-body');
+            tbody.innerHTML = "";
+
+            if (files.length > 0) {
+                files.forEach(file => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${file.artist}</td>
+                        <td>${file.title}</td>
+                        <td>${file.genre}</td>
+                        <td><button class="btn-dl" onclick="downloadBase64('${file.base64Data}', '${file.artist} - ${file.title}.mid')">Download</button></td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:#b0b0c3;">Tidak ada file MIDI ditemukan.</td></tr>`;
+            }
+        }
+
+        // Fitur Search Realtime
+        function filterMidiTable() {
+            const input = document.getElementById('searchInput').value.toLowerCase();
+            const filteredFiles = currentMidiFiles.filter(file => {
+                return file.artist.toLowerCase().includes(input) ||
+                       file.title.toLowerCase().includes(input) ||
+                       file.genre.toLowerCase().includes(input);
+            });
+            renderTable(filteredFiles);
+        }
+
+        // Fungsi unduh langsung dari data HTML/Base64 tanpa link URL eksternal
+        function downloadBase64(base64String, fileName) {
+            const link = document.createElement('a');
+            link.href = base64String;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+
+</body>
+</html>
